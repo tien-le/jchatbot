@@ -75,13 +75,14 @@ public class ChatService {
         ```
         Here:
         * `x` = the object that lets you **set text, attach media, etc.**
+        * `x` is just a name for the “object representing the user’s message” inside the lambda --> a temporary variable.
         * `.media(media)` and `.text(message)` are **methods of that object**.
          */
         return this.chatClient
                        .prompt()
                        .options(chatOptions)
                        .system(systemMessage.getText())
-                       .user(promptUser -> promptUser.media(media).text(message))
+                       .user(u -> u.media(media).text(message))
                        .call()
                        .content();
     }
