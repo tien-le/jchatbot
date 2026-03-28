@@ -1,17 +1,19 @@
 package com.learn4you.jchatbot.service;
 
+import com.learn4you.jchatbot.dto.request.BillItem;
+import com.learn4you.jchatbot.dto.request.ExpenseInfo;
 import com.learn4you.jchatbot.dto.request.ChatRequest;
 import com.learn4you.jchatbot.dto.request.FilmInfo;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.content.Media;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
-import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -21,18 +23,20 @@ public class ChatService {
     private final ChatClient chatClient;
 
     public ChatService(ChatClient.Builder builder) {
-        this.chatClient = builder.build();
+        String systemMessage = """
+                You are an expert assistant about AI Engineer, and your name is LAVIE.
+                Your response should always be a formal voice.
+                """;
+        this.chatClient = builder
+                              .defaultSystem(systemMessage)
+                              .build();
     }
 
     public String chat(ChatRequest request) {
         System.out.println("input message: " + request.message());
 
-        SystemMessage systemMessage = new SystemMessage("""
-                You are an expert assistant about AI Engineer, and your name is LAVIE.
-                Your response should always be a formal voice.
-                """);
         UserMessage userMessage = new UserMessage(request.message());
-        Prompt prompt = new Prompt(systemMessage, userMessage);
+        Prompt prompt = new Prompt(userMessage);
 
 //        return chatClient.prompt(request.message()).call().content();
 
@@ -52,12 +56,8 @@ public class ChatService {
     public List<FilmInfo> chatWithFilmInfo(ChatRequest request) {
         System.out.println("input message: " + request.message());
 
-        SystemMessage systemMessage = new SystemMessage("""
-                You are an expert assistant about AI Engineer, and your name is LAVIE.
-                Your response should always be a formal voice.
-                """);
         UserMessage userMessage = new UserMessage(request.message());
-        Prompt prompt = new Prompt(systemMessage, userMessage);
+        Prompt prompt = new Prompt(userMessage);
         try {
             return this.chatClient
                            .prompt(prompt)
@@ -71,10 +71,6 @@ public class ChatService {
 
     public String chatWithImage(MultipartFile file, String message) {
         System.out.println("input message: " + message);
-        SystemMessage systemMessage = new SystemMessage("""
-                You are an expert assistant about AI Engineer, and your name is LAVIE.
-                Your response should always be a formal voice.
-                """);
 
         /*
         * `Media.builder()` → starts building a `Media` object using the builder pattern.
@@ -106,11 +102,81 @@ public class ChatService {
         return this.chatClient
                        .prompt()
                        .options(chatOptions)
-                       .system(systemMessage.getText())
                        .user(u -> u.media(media).text(message))
                        .call()
                        .content();
     }
 
+    public ExpenseInfo chatWithExpenseInfo(ChatRequest request) {
+        System.out.println("input message: " + request.message());
 
+        UserMessage userMessage = new UserMessage(request.message());
+        Prompt prompt  = new Prompt(userMessage);
+        return this.chatClient
+                   .prompt(prompt)
+                   .call()
+                   .entity(ExpenseInfo.class);
+    }
+
+    public List<BillItem> chatWithBillInfo(MultipartFile file, String message) {
+        System.out.println("input message: " + message);
+        Media media = Media
+                          .builder()
+                          .mimeType(MimeTypeUtils.parseMimeType(file.getContentType()))
+                          .data(file.getResource())
+                          .build();
+        ChatOptions chatOptions = new ChatOptions() {
+            @Override
+            public String getModel() {
+                return "gemini-2.5-flash-lite";
+            }
+
+            @Override
+            public Double getFrequencyPenalty() {
+                return 0.0;
+            }
+
+            @Override
+            public Integer getMaxTokens() {
+                return 100;
+            }
+
+            @Override
+            public Double getPresencePenalty() {
+                return 0.0;
+            }
+
+            @Override
+            public List<String> getStopSequences() {
+                return List.of();
+            }
+
+            @Override
+            public Double getTemperature() {
+                return 0.5;
+            }
+
+            @Override
+            public Integer getTopK() {
+                return 0;
+            }
+
+            @Override
+            public Double getTopP() {
+                return 0.0;
+            }
+
+            @Override
+            public <T extends ChatOptions> T copy() {
+                return null;
+            }
+        };
+        return this.chatClient
+                   .prompt()
+                   .options(chatOptions)
+                   .user(u -> u.media(media).text(message))
+                   .call()
+                   .entity(new ParameterizedTypeReference<List<BillItem>>() {
+                   });
+    }
 }

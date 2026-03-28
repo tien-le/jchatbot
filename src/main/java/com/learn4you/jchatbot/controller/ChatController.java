@@ -1,6 +1,8 @@
 package com.learn4you.jchatbot.controller;
 
+import com.learn4you.jchatbot.dto.request.BillItem;
 import com.learn4you.jchatbot.dto.request.ChatRequest;
+import com.learn4you.jchatbot.dto.request.ExpenseInfo;
 import com.learn4you.jchatbot.dto.request.FilmInfo;
 import com.learn4you.jchatbot.service.ChatService;
 import org.apache.tomcat.jni.FileInfo;
@@ -35,5 +37,22 @@ public class ChatController {
     @PostMapping("/chat-with-film-info")
     public List<FilmInfo> chatWithFilmInfo(@RequestBody ChatRequest request) {
         return chatService.chatWithFilmInfo(request);
+    }
+
+    /*Example:
+        {
+            "message": "View film in Pathe cimema 5 euros"
+        }
+    */
+    @PostMapping("/chat-with-expense-info")
+    public ExpenseInfo chatWithExpenseInfo(@RequestBody ChatRequest request) {
+        return chatService.chatWithExpenseInfo(request);
+    }
+
+    @PostMapping("/chat-with-bill-info")
+    public List<BillItem> chatWithBillInfo(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("message")  String message) {
+        return chatService.chatWithBillInfo(file, message);
     }
 }
