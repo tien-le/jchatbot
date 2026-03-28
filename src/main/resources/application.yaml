@@ -1,0 +1,34 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: jchatbot
+
+#  ai:
+#    ollama:
+#      base-url: http://localhost:11434
+#      chat:
+#        additional-models:
+#          - llama3.2:1b
+#          - deepseek-r1:1.5b
+#          - qwen2.5
+#    openai:
+#      api-key: ${GEMINI_API_KEY}
+#    model:
+#      chat: google-genai
+#    google:
+#      genai:
+#        api-key: ${GEMINI_API_KEY}
+#        model: gemini-2.5-flash-lite
+
+  ai:
+    openai:
+      api-key: ${GEMINI_API_KEY}
+      chat:
+        base-url: https://generativelanguage.googleapis.com
+        completions-path: /v1beta/openai/chat/completions
+        options:
+          model: gemini-2.5-flash-lite
