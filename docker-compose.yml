@@ -1,0 +1,16 @@
+services:
+  postgres:
+    container_name: 'postgres-sping-ai'
+    image: 'postgres:18.0'
+    restart: always
+    environment:
+      'POSTGRES_DB=spring_ai_chat_memory'
+      'POSTGRES_USER: postgres'
+      'POSTGRES_PASSWORD: postgres'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - '5432:5432'
+volumes:
+  postgres-data:

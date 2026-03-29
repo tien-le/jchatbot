@@ -5,6 +5,10 @@ import com.learn4you.jchatbot.dto.request.ExpenseInfo;
 import com.learn4you.jchatbot.dto.request.ChatRequest;
 import com.learn4you.jchatbot.dto.request.FilmInfo;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -17,23 +21,40 @@ import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ChatService {
     private final ChatClient chatClient;
+    private final JdbcChatMemoryRepository jdbcChatMemoryRepository;
+    private final ChatMemory chatMemory;
 
-    public ChatService(ChatClient.Builder builder) {
+    public ChatService(ChatClient.Builder builder, JdbcChatMemoryRepository jdbcChatMemoryRepository) {
         String systemMessage = """
-                You are an expert assistant about AI Engineer, and your name is LAVIE.
+                You are an expert assistant about AI Engineer.
                 Your response should always be a formal voice.
                 """;
+        this.jdbcChatMemoryRepository = jdbcChatMemoryRepository;
+        this.chatMemory = MessageWindowChatMemory.builder()
+                                    .chatMemoryRepository(jdbcChatMemoryRepository)
+                                    .maxMessages(30)  // default=20
+                                    .build();
         this.chatClient = builder
                               .defaultSystem(systemMessage)
+                              .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                               .build();
     }
 
     public String chat(ChatRequest request) {
+        System.out.println("-".repeat(32));
         System.out.println("input message: " + request.message());
+
+        String conversationId = "Conversation-01";
+
+        //BEFORE call
+        var historyBefore = this.chatMemory.get(conversationId);
+        System.out.println("=== MEMORY BEFORE ===");
+        historyBefore.forEach(memory -> System.out.println(memory.getText()));
 
         UserMessage userMessage = new UserMessage(request.message());
         Prompt prompt = new Prompt(userMessage);
@@ -46,11 +67,21 @@ public class ChatService {
 //                       .user(request.message())
 //                       .call()
 //                       .content();
+//        String conversationId = UUID.randomUUID().toString();
 
-        return this.chatClient
+        String response = this.chatClient
                        .prompt(prompt)
+                       .advisors(a->a.param(ChatMemory.CONVERSATION_ID, conversationId))
                        .call()
                        .content();
+
+        // AFTER call
+        System.out.println("-".repeat(32));
+        var historyAfter = chatMemory.get(conversationId);
+        System.out.println("=== MEMORY AFTER ===");
+        historyAfter.forEach(msg -> System.out.println(msg.getText()));
+
+        return response;
     }
 
     public List<FilmInfo> chatWithFilmInfo(ChatRequest request) {

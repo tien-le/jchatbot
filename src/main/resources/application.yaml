@@ -3,6 +3,10 @@ server:
   servlet:
     context-path: /api
 
+logging:
+  level:
+    org.springframework.ai: DEBUG
+
 spring:
   application:
     name: jchatbot
@@ -32,3 +36,19 @@ spring:
         completions-path: /v1beta/openai/chat/completions
         options:
           model: gemini-2.5-flash-lite
+
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/spring-ai-demo
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
