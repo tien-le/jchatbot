@@ -6,11 +6,13 @@ import com.learn4you.jchatbot.dto.request.ExpenseInfo;
 import com.learn4you.jchatbot.dto.request.FilmInfo;
 import com.learn4you.jchatbot.service.ChatService;
 import org.apache.tomcat.jni.FileInfo;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -20,6 +22,11 @@ public class ChatController {
 
     public ChatController(ChatService chatService) {
         this.chatService = chatService;
+    }
+
+    @PostMapping(value = "/chat-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<String> chatStream(@RequestBody ChatRequest chatRequest) {
+        return chatService.chatStreamResponse(chatRequest);
     }
 
     @PostMapping("/chat")

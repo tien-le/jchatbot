@@ -1,16 +1,27 @@
 services:
   postgres:
-    container_name: 'postgres-sping-ai'
-    image: 'postgres:18.0'
+    container_name: postgres-spring-ai
+    image: postgres:18
     restart: always
     environment:
-      'POSTGRES_DB=spring_ai_chat_memory'
-      'POSTGRES_USER: postgres'
-      'POSTGRES_PASSWORD: postgres'
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - '5432:5432'
+      - "5432:5432"
+
+  qdrant:
+    container_name: qdrant-spring-ai
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333" # REST API
+      - "6334:6334" # gRPC
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
 volumes:
   postgres-data:
+  qdrant_storage:

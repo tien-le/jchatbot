@@ -30,3 +30,5 @@ Example:
     Conversation-01, What is your name? What is your job?, USER/ASSISTANT, 2026-03-29 20:20:46.000
 
 Ref: https://github.com/spring-projects/spring-ai/blob/main/memory/repository/spring-ai-model-chat-memory-repository-jdbc/src/main/resources/org/springframework/ai/chat/memory/repository/jdbc/schema-postgresql.sql
+
+## BT7: Stream Response

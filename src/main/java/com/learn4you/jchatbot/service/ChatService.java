@@ -19,7 +19,12 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +48,60 @@ public class ChatService {
                               .defaultSystem(systemMessage)
                               .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
                               .build();
+    }
+
+    private Flux<String> toChunk(Flux<String> tokenFlux, int chunkSize) {
+        return Flux.create(sink -> {
+            StringBuilder buffer = new StringBuilder();
+            tokenFlux.subscribe(
+                token -> {
+                    buffer.append(token);
+                    if (buffer.length() >= chunkSize) {
+                        sink.next(buffer.toString());
+                        buffer.setLength(0);
+                    }
+                },
+                sink::error,
+                () -> {
+                    if (buffer.length() > 0) {
+                        sink.next(buffer.toString());
+                    }
+                    sink.complete();
+                }
+            );
+        });
+    }
+
+    private Flux<String> toJsonChunk(Flux<String> tokenFlux) {
+        return tokenFlux
+                   .scan(new StringBuilder(), (buffer, token) -> buffer.append(token))
+                   .flatMap(buffer -> {
+                       int idx = buffer.indexOf("\n");
+                       if (idx >= 0) {
+                           String line = buffer.substring(0, idx);
+                           buffer.delete(0, idx + 1);
+                           return Mono.just(line);
+                       }
+                       return Mono.empty();
+                   });
+    }
+
+    public Flux<String> chatStreamResponse(ChatRequest request) {
+        UserMessage userMessage = new UserMessage(request.message());
+        Prompt prompt = new Prompt(userMessage);
+        return this.chatClient.prompt(prompt)
+                              .stream()
+                              .content()
+                              .transform(flux -> toChunk(flux, 100));
+//                              .transform(this::toJsonChunk);
+//                              .retryWhen(
+//                                  Retry.backoff(3, Duration.ofSeconds(2))
+//                                       .filter(ex -> ex instanceof WebClientResponseException.TooManyRequests)
+//                              )
+//                              .onErrorResume(WebClientResponseException.TooManyRequests.class, ex ->
+//                                                                                                   Flux.just("⚠️ Rate limit hit. Please retry later.")
+//                              );
+
     }
 
     public String chat(ChatRequest request) {
